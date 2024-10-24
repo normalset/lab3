@@ -2,6 +2,7 @@ import java.util.Random ;
 
 class Laboratorio{
     private int numComputers = 20 ;
+    public int prof_q = 0 , tesisti_q = 0 ;
     // false = libero , true = occupato
     private boolean[] computers = new boolean[numComputers] ;
 
@@ -14,11 +15,12 @@ class Laboratorio{
         Thread.sleep(2000) ;
         System.out.println("Professore logout");
         notifyAll();
+        prof_q -= 1 ;
     }
 
     public synchronized void accediTesista(int computerIndex) throws InterruptedException {
         // true = occupato
-        while(computers[computerIndex]){
+        while(computers[computerIndex] || prof_q > 0){
             wait() ;
         }
         //occupa il computer, lavora e rilascia
@@ -28,12 +30,13 @@ class Laboratorio{
         System.out.println("Tesista logout dal pc: "+computerIndex);
         computers[computerIndex] = false;
         notifyAll();
+        tesisti_q -= 1 ;
     }
 
     public synchronized void accediStudente() throws InterruptedException {
         //cerca un pc libero
         int freePc = getFreePc();
-        while(freePc == -1){
+        while(freePc == -1 || prof_q > 0 || tesisti_q > 0){
             wait() ;
             freePc = getFreePc();
         }
@@ -82,9 +85,11 @@ class Utente implements Runnable{
             for(int i = 0 ; i < accessCount ; i++){
                 switch (tipo){
                     case "professore":
+                        laboratorio.prof_q += 1 ;
                         laboratorio.accediProfessore();
                         break;
                     case "tesista":
+                        laboratorio.tesisti_q += 1 ;
                         laboratorio.accediTesista(computerIndex);
                         break;
                     case "studente":
